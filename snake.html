@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    user-select: none;
+  }
+  #score {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+    color: #a0e4b0;
+  }
+  #canvas-wrap {
+    position: relative;
+    line-height: 0;
+  }
+  canvas {
+    border: 2px solid #2d4a6b;
+    border-radius: 4px;
+    display: block;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,30,0.82);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    gap: 16px;
+  }
+  #overlay h2 { font-size: 2rem; color: #e06c75; }
+  #overlay p  { font-size: 1rem; color: #aaa; }
+  #overlay button {
+    padding: 10px 28px;
+    font-size: 1rem;
+    background: #2d6a4f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  #overlay button:hover { background: #40916c; }
+  #start-msg { color: #a0e4b0; font-size: 1rem; }
+</style>
+</head>
+<body>
+<div id="score">SCORE: 0</div>
+<div id="canvas-wrap">
+  <canvas id="c"></canvas>
+  <div id="overlay">
+    <h2>SNAKE</h2>
+    <p id="start-msg">Press an arrow key or tap Start to play</p>
+    <button id="btn">Start</button>
+  </div>
+</div>
+
+<script>
+const CELL = 20;
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const scoreEl = document.getElementById('score');
+const btn = document.getElementById('btn');
+const startMsg = document.getElementById('start-msg');
+
+let cols, rows, snake, dir, nextDir, apple, lava, moveCount, score, gameOver, started, ticker;
+
+function resize() {
+  const maxW = Math.min(window.innerWidth - 32, 600);
+  const maxH = Math.min(window.innerHeight - 100, 600);
+  cols = Math.floor(maxW / CELL);
+  rows = Math.floor(maxH / CELL);
+  canvas.width  = cols * CELL;
+  canvas.height = rows * CELL;
+}
+
+function init() {
+  snake = [
+    { x: Math.floor(cols / 2),     y: Math.floor(rows / 2) },
+    { x: Math.floor(cols / 2) - 1, y: Math.floor(rows / 2) },
+    { x: Math.floor(cols / 2) - 2, y: Math.floor(rows / 2) },
+  ];
+  dir = { x: 1, y: 0 };
+  nextDir = { x: 1, y: 0 };
+  score = 0;
+  moveCount = 0;
+  lava = [];
+  gameOver = false;
+  scoreEl.textContent = 'SCORE: 0';
+  placeApple();
+  placeLava();
+  draw();
+}
+
+function occupiedSet() {
+  const s = new Set(snake.map(s => `${s.x},${s.y}`));
+  lava.forEach(l => s.add(`${l.x},${l.y}`));
+  return s;
+}
+
+function placeApple() {
+  const occupied = occupiedSet();
+  let pos;
+  do {
+    pos = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+  } while (occupied.has(`${pos.x},${pos.y}`));
+  apple = pos;
+}
+
+function placeLava() {
+  const occupied = occupiedSet();
+  occupied.add(`${apple.x},${apple.y}`);
+  let pos;
+  do {
+    pos = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+  } while (occupied.has(`${pos.x},${pos.y}`));
+  lava.push(pos);
+}
+
+function tick() {
+  if (gameOver) return;
+  dir = nextDir;
+  const head = {
+    x: (snake[0].x + dir.x + cols) % cols,
+    y: (snake[0].y + dir.y + rows) % rows,
+  };
+  if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    endGame(); return;
+  }
+  if (lava.some(l => l.x === head.x && l.y === head.y)) {
+    endGame(); return;
+  }
+  snake.unshift(head);
+  moveCount++;
+  if (moveCount % 10 === 0) placeLava();
+  if (head.x === apple.x && head.y === apple.y) {
+    score++;
+    scoreEl.textContent = `SCORE: ${score}`;
+    placeApple();
+  } else {
+    snake.pop();
+  }
+  draw();
+}
+
+function draw() {
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid dots
+  ctx.fillStyle = '#1e2d4a';
+  for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows; y++) {
+      ctx.fillRect(x * CELL + CELL/2 - 1, y * CELL + CELL/2 - 1, 2, 2);
+    }
+  }
+
+  // Lava
+  lava.forEach(l => {
+    ctx.fillStyle = '#6b0f0f';
+    ctx.fillRect(l.x * CELL, l.y * CELL, CELL, CELL);
+    ctx.fillStyle = '#a01010';
+    ctx.fillRect(l.x * CELL + 2, l.y * CELL + 2, CELL - 4, CELL - 4);
+  });
+
+  // Apple
+  ctx.fillStyle = '#e06c75';
+  ctx.beginPath();
+  ctx.arc(apple.x * CELL + CELL/2, apple.y * CELL + CELL/2, CELL/2 - 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snake body
+  snake.forEach((seg, i) => {
+    const t = i / snake.length;
+    ctx.fillStyle = i === 0 ? '#52b788' : `hsl(145, ${60 - t*20}%, ${40 - t*10}%)`;
+    ctx.fillRect(seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2);
+  });
+}
+
+function endGame() {
+  gameOver = true;
+  clearInterval(ticker);
+  started = false;
+  overlay.style.display = 'flex';
+  overlay.querySelector('h2').textContent = 'GAME OVER';
+  startMsg.textContent = `You scored ${score} point${score !== 1 ? 's' : ''}`;
+  btn.textContent = 'Restart';
+}
+
+function startGame() {
+  clearInterval(ticker);
+  started = true;
+  overlay.style.display = 'none';
+  init();
+  ticker = setInterval(tick, 150);
+}
+
+btn.addEventListener('click', startGame);
+
+document.addEventListener('keydown', e => {
+  const map = {
+    ArrowUp:    { x:  0, y: -1 },
+    ArrowDown:  { x:  0, y:  1 },
+    ArrowLeft:  { x: -1, y:  0 },
+    ArrowRight: { x:  1, y:  0 },
+  };
+  const d = map[e.key];
+  if (!d) return;
+  e.preventDefault();
+  if (!started) { startGame(); return; }
+  // Prevent 180° reversal
+  if (d.x === -dir.x && d.y === -dir.y) return;
+  nextDir = d;
+});
+
+window.addEventListener('resize', () => {
+  resize();
+  if (!started) { init(); }
+});
+
+resize();
+init();
+</script>
+</body>
+</html>
