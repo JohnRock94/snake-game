@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A single-file browser Snake game — no build tools, no dependencies, no server required. Open `snake.html` directly in a browser to play.
+A single-file browser Snake game — no build tools, no dependencies, no server required. Open `index.html` directly in a browser to play, or deploy to Vercel/GitHub Pages as a static site.
 
 ## Architecture
 
-Everything lives in [`snake.html`](snake.html): inline CSS, a `<canvas>` element, and a `<script>` block.
+Everything lives in [`index.html`](index.html): inline CSS, a `<canvas>` element, and a `<script>` block.
 
 **Key state variables** (all module-level `let`):
 - `snake` — array of `{x, y}` cells, head at index 0
