@@ -25,3 +25,12 @@ Everything lives in [`snake.html`](snake.html): inline CSS, a `<canvas>` element
 **Spawn helpers**: `occupiedSet()` builds a `Set` of all blocked cells (snake + lava); `placeApple()` and `placeLava()` use it to avoid overlaps.
 
 **Rendering order** in `draw()`: background → grid dots → lava → apple → snake (head drawn brighter than body).
+
+## Controls
+
+- **Keyboard**: arrow keys steer the snake; 180° reversals are blocked.
+- **Touch/mobile**: swipe gestures via `touchstart`/`touchend` events. The swipe delta is compared on both axes; the dominant axis determines direction. Swipes shorter than 10px are ignored. Both keyboard and swipe start the game from the title screen.
+
+## Security
+
+A `Content-Security-Policy` meta tag (`default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'`) is set in `<head>` to block injected third-party scripts when served over HTTP.
